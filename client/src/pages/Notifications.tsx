@@ -41,17 +41,12 @@ export default function Notifications() {
             <h1 className="font-serif text-2xl font-bold text-foreground flex items-center gap-2">
               <Bell className="w-6 h-6 text-primary" /> Varsler
             </h1>
-            {unread > 0 && (
-              <p className="text-muted-foreground text-sm mt-1">{unread} uleste varsler</p>
-            )}
+            {unread > 0 && <p className="text-muted-foreground text-sm mt-1">{unread} uleste varsler</p>}
           </div>
           {unread > 0 && (
-            <Button variant="outline" size="sm"
-              className="border-border/60 bg-card text-foreground"
-              disabled={markAllRead.isPending}
-              onClick={() => markAllRead.mutate()}>
-              <CheckCheck className="w-4 h-4 mr-2" />
-              Merk alle som lest
+            <Button variant="outline" size="sm" className="border-border/60 bg-card text-foreground"
+              disabled={markAllRead.isPending} onClick={() => markAllRead.mutate()}>
+              <CheckCheck className="w-4 h-4 mr-2" /> Merk alle som lest
             </Button>
           )}
         </div>
@@ -82,17 +77,13 @@ export default function Notifications() {
                     <Icon className={cn("w-4 h-4", cfg.color)} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={cn("text-sm font-medium", !n.isRead ? "text-foreground" : "text-muted-foreground")}>
-                      {n.title}
-                    </p>
+                    <p className={cn("text-sm font-medium", !n.isRead ? "text-foreground" : "text-muted-foreground")}>{n.title}</p>
                     {n.body && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>}
                     <p className="text-xs text-muted-foreground mt-1">
                       {new Date(n.createdAt).toLocaleString("nb-NO", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
-                  {!n.isRead && (
-                    <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-2" />
-                  )}
+                  {!n.isRead && <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-2" />}
                 </div>
               );
             })}

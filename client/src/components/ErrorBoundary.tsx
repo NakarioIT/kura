@@ -1,60 +1,47 @@
-import { cn } from "@/lib/utils";
-import { AlertTriangle, RotateCcw } from "lucide-react";
-import { Component, ReactNode } from "react";
+import React, { Component, type ErrorInfo, type ReactNode } from "react";
 
-interface Props {
+interface ErrorBoundaryProps {
   children: ReactNode;
+  fallback?: ReactNode;
 }
 
-interface State {
+interface ErrorBoundaryState {
   hasError: boolean;
-  error: Error | null;
+  error?: Error;
 }
 
-class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) return this.props.fallback;
       return (
-        <div className="flex items-center justify-center min-h-screen p-8 bg-background">
-          <div className="flex flex-col items-center w-full max-w-2xl p-8">
-            <AlertTriangle
-              size={48}
-              className="text-destructive mb-6 flex-shrink-0"
-            />
-
-            <h2 className="text-xl mb-4">An unexpected error occurred.</h2>
-
-            <div className="p-4 w-full rounded bg-muted overflow-auto mb-6">
-              <pre className="text-sm text-muted-foreground whitespace-break-spaces">
-                {this.state.error?.stack}
-              </pre>
-            </div>
-
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h2>
+            <p className="text-gray-600 mb-4">{this.state.error?.message || "An unexpected error occurred"}</p>
             <button
-              onClick={() => window.location.reload()}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg",
-                "bg-primary text-primary-foreground",
-                "hover:opacity-90 cursor-pointer"
-              )}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              onClick={() => this.setState({ hasError: false, error: undefined })}
             >
-              <RotateCcw size={16} />
-              Reload Page
+              Try again
             </button>
           </div>
         </div>
       );
     }
-
     return this.props.children;
   }
 }
