@@ -42,52 +42,33 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* Kura Design System — Elegant, refined health coordination platform */
-/* Primary: Deep Forest Green | Accent: Warm Terracotta | Background: Warm Cream */
+/* Kura Design System */
 :root {
   --radius: 0.625rem;
-
-  /* Core palette — warm cream base, deep forest green primary */
-  --background:          oklch(0.985 0.006 90);      /* warm cream */
-  --foreground:          oklch(0.22 0.025 150);       /* deep forest */
-  --card:                oklch(0.995 0.003 90);       /* near-white warm */
+  --background:          oklch(0.985 0.006 90);
+  --foreground:          oklch(0.22 0.025 150);
+  --card:                oklch(0.995 0.003 90);
   --card-foreground:     oklch(0.22 0.025 150);
   --popover:             oklch(0.995 0.003 90);
   --popover-foreground:  oklch(0.22 0.025 150);
-
-  /* Primary — deep forest green */
   --primary:             oklch(0.32 0.09 155);
   --primary-foreground:  oklch(0.97 0.01 90);
-
-  /* Secondary — soft sage */
   --secondary:           oklch(0.92 0.025 145);
   --secondary-foreground: oklch(0.28 0.06 150);
-
-  /* Muted — warm grey-cream */
   --muted:               oklch(0.94 0.008 85);
   --muted-foreground:    oklch(0.52 0.018 140);
-
-  /* Accent — warm terracotta */
   --accent:              oklch(0.88 0.04 55);
   --accent-foreground:   oklch(0.28 0.06 50);
-
-  /* Destructive */
   --destructive:         oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-
-  /* Borders & inputs */
   --border:              oklch(0.88 0.012 120);
   --input:               oklch(0.88 0.012 120);
   --ring:                oklch(0.32 0.09 155);
-
-  /* Charts */
   --chart-1:             oklch(0.32 0.09 155);
   --chart-2:             oklch(0.52 0.10 145);
   --chart-3:             oklch(0.68 0.08 140);
   --chart-4:             oklch(0.72 0.09 55);
   --chart-5:             oklch(0.62 0.12 30);
-
-  /* Sidebar */
   --sidebar:             oklch(0.25 0.06 152);
   --sidebar-foreground:  oklch(0.93 0.015 90);
   --sidebar-primary:     oklch(0.97 0.01 90);
@@ -186,7 +167,6 @@
     }
   }
 
-  /* Kura-specific utilities */
   .kura-card {
     @apply bg-card rounded-xl border border-border/60 shadow-sm;
   }
@@ -206,7 +186,6 @@
     @apply bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-medium px-2.5 py-0.5 rounded-full;
   }
 
-  /* Print styles for doctor summary */
   @media print {
     .no-print { display: none !important; }
     .print-only { display: block !important; }
@@ -216,16 +195,13 @@
   .print-only { display: none; }
 }
 
-/* Smooth scrolling */
 html { scroll-behavior: smooth; }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: oklch(0.75 0.03 150); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: oklch(0.55 0.06 150); }
 
-/* Framer motion defaults */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

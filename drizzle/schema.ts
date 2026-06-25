@@ -26,13 +26,11 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 // ─── Care Groups ──────────────────────────────────────────────────────────────
-// A care group represents one person being cared for (the patient) and their
-// surrounding family / professional team.
 export const careGroups = mysqlTable("care_groups", {
   id: int("id").autoincrement().primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),          // e.g. "Familie Hansen"
+  name: varchar("name", { length: 255 }).notNull(),
   patientName: varchar("patientName", { length: 255 }).notNull(),
-  patientDob: varchar("patientDob", { length: 20 }),         // ISO date string
+  patientDob: varchar("patientDob", { length: 20 }),
   patientNotes: text("patientNotes"),
   createdByUserId: int("createdByUserId").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -82,7 +80,7 @@ export const appointments = mysqlTable("appointments", {
   category: mysqlEnum("category", ["doctor", "home_care", "physiotherapy", "pharmacy", "hospital", "other"]).notNull(),
   description: text("description"),
   location: varchar("location", { length: 255 }),
-  startAt: bigint("startAt", { mode: "number" }).notNull(),  // UTC ms
+  startAt: bigint("startAt", { mode: "number" }).notNull(),
   endAt: bigint("endAt", { mode: "number" }),
   allDay: boolean("allDay").default(false).notNull(),
   reminderSent: boolean("reminderSent").default(false).notNull(),
@@ -101,18 +99,15 @@ export const medicalLogs = mysqlTable("medical_logs", {
   entryType: mysqlEnum("entryType", ["medication", "symptom", "vital", "wellbeing", "note"]).notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   body: text("body"),
-  // Structured fields for vitals
   vitalSystolic: int("vitalSystolic"),
   vitalDiastolic: int("vitalDiastolic"),
   vitalPulse: int("vitalPulse"),
   vitalTemp: varchar("vitalTemp", { length: 10 }),
   vitalWeight: varchar("vitalWeight", { length: 10 }),
   vitalOxygen: int("vitalOxygen"),
-  // Medication fields
   medicationName: varchar("medicationName", { length: 255 }),
   medicationDose: varchar("medicationDose", { length: 100 }),
   medicationGiven: boolean("medicationGiven"),
-  // Severity for symptoms / wellbeing (1–5)
   severity: int("severity"),
   recordedAt: bigint("recordedAt", { mode: "number" }).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -167,7 +162,7 @@ export const timelineEvents = mysqlTable("timeline_events", {
   eventType: mysqlEnum("eventType", ["diagnosis", "treatment", "surgery", "hospitalization", "medication_start", "medication_stop", "test_result", "milestone", "note"]).notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   body: text("body"),
-  provider: varchar("provider", { length: 255 }),  // doctor / hospital name
+  provider: varchar("provider", { length: 255 }),
   icdCode: varchar("icdCode", { length: 20 }),
   eventDate: bigint("eventDate", { mode: "number" }).notNull(),
   isKeyEvent: boolean("isKeyEvent").default(false).notNull(),
