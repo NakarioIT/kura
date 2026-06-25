@@ -1,37 +1,27 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import { Calendar as CalIcon, MapPin, Plus, Trash2 } from "lucide-react";
+import { Calendar as CalIcon, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useParams } from "wouter";
 import KuraLayout from "@/components/KuraLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
-const categoryLabels: Record<string, string> = {
-  doctor: "Lege",
-  home_care: "Hjemmesykepleie",
-  physiotherapy: "Fysioterapi",
-  pharmacy: "Apotek",
-  hospital: "Sykehus",
-  other: "Annet",
-};
-const categoryColors: Record<string, string> = {
-  doctor: "bg-blue-100 text-blue-700 border-blue-200",
-  home_care: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  physiotherapy: "bg-purple-100 text-purple-700 border-purple-200",
-  pharmacy: "bg-amber-100 text-amber-700 border-amber-200",
-  hospital: "bg-rose-100 text-rose-700 border-rose-200",
-  other: "bg-gray-100 text-gray-700 border-gray-200",
+const categoryConfig: Record<string, { label: string; color: string; bg: string; dot: string }> = {
+  doctor: { label: "Lege", color: "text-blue-700", bg: "bg-blue-50", dot: "bg-blue-500" },
+  home_care: { label: "Hjemmesykepleie", color: "text-emerald-700", bg: "bg-emerald-50", dot: "bg-emerald-500" },
+  physiotherapy: { label: "Fysioterapi", color: "text-amber-700", bg: "bg-amber-50", dot: "bg-amber-500" },
+  pharmacy: { label: "Apotek", color: "text-purple-700", bg: "bg-purple-50", dot: "bg-purple-500" },
+  hospital: { label: "Sykehus", color: "text-rose-700", bg: "bg-rose-50", dot: "bg-rose-500" },
+  other: { label: "Annet", color: "text-gray-600", bg: "bg-gray-50", dot: "bg-gray-400" },
 };
 
 export default function Calendar() {
@@ -39,23 +29,22 @@ export default function Calendar() {
   const groupId = parseInt(id ?? "0");
   const { isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [form, setForm] = useState({
-    title: "",
-    category: "doctor" as "doctor" | "home_care" | "physiotherapy" | "pharmacy" | "hospital" | "other",
-    description: "",
-    location: "",
-    startAt: "",
-    endAt: "",
-    allDay: false,
+    title: "", category: "doctor" as "doctor" | "home_care" | "physiotherapy" | "pharmacy" | "hospital" | "other",
+    description: "", location: "", startAt: "", endAt: "", allDay: false,
   });
 
+  const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+  const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0, 23, 59, 59);
+
   const { data: appointments, isLoading, refetch } = trpc.appointments.list.useQuery(
-    { careGroupId: groupId },
+    { careGroupId: groupId, fromMs: monthStart.getTime(), toMs: monthEnd.getTime() },
     { enabled: isAuthenticated && !!groupId }
   );
 
   const createAppt = trpc.appointments.create.useMutation({
-    onSuccess: () => { toast.success("Avtale lagt til!"); setOpen(false); refetch(); resetForm(); },
+    onSuccess: () => { toast.success("Avtale opprettet!"); setOpen(false); refetch(); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -64,40 +53,41 @@ export default function Calendar() {
     onError: (e) => toast.error(e.message),
   });
 
-  const resetForm = () =>
-    setForm({ title: "", category: "doctor", description: "", location: "", startAt: "", endAt: "", allDay: false });
-
   const handleCreate = () => {
     if (!form.title || !form.startAt) return;
     createAppt.mutate({
-      careGroupId: groupId,
-      title: form.title,
-      category: form.category,
-      description: form.description || undefined,
-      location: form.location || undefined,
+      careGroupId: groupId, title: form.title, category: form.category,
+      description: form.description || undefined, location: form.location || undefined,
       startAt: new Date(form.startAt).getTime(),
       endAt: form.endAt ? new Date(form.endAt).getTime() : undefined,
       allDay: form.allDay,
     });
   };
 
-  // Group appointments by month
-  const grouped = (appointments ?? []).reduce<Record<string, typeof appointments>>((acc, a) => {
-    const key = new Date(a.startAt).toLocaleDateString("nb-NO", { month: "long", year: "numeric" });
-    if (!acc[key]) acc[key] = [];
-    acc[key]!.push(a);
-    return acc;
-  }, {});
+  const prevMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+  const nextMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+
+  const monthLabel = currentMonth.toLocaleString("nb-NO", { month: "long", year: "numeric" });
+
+  const apptsByDay: Record<number, typeof appointments> = {};
+  (appointments ?? []).forEach(a => {
+    const day = new Date(a.startAt).getDate();
+    if (!apptsByDay[day]) apptsByDay[day] = [];
+    apptsByDay[day]!.push(a);
+  });
+
+  const daysInMonth = monthEnd.getDate();
+  const firstDow = (monthStart.getDay() + 6) % 7; // Monday-first
 
   return (
     <KuraLayout groupId={id}>
-      <div className="container py-10 max-w-3xl">
-        <div className="flex items-center justify-between mb-8">
+      <div className="container py-10 max-w-4xl">
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="font-serif text-2xl font-bold text-foreground flex items-center gap-2">
               <CalIcon className="w-6 h-6 text-blue-600" /> Kalender
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">Alle avtaler for omsorgsteamet</p>
+            <p className="text-muted-foreground text-sm mt-1">Koordiner avtaler for omsorgsteamet</p>
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -106,125 +96,133 @@ export default function Calendar() {
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="font-serif">Legg til avtale</DialogTitle>
-              </DialogHeader>
+              <DialogHeader><DialogTitle className="font-serif">Ny avtale</DialogTitle></DialogHeader>
               <div className="space-y-4 py-2">
                 <div className="space-y-1.5">
                   <Label>Tittel *</Label>
-                  <Input placeholder="f.eks. Legetime hos Dr. Andersen" value={form.title}
-                    onChange={(e) => setForm(f => ({ ...f, title: e.target.value }))} />
+                  <Input placeholder="f.eks. Legetime Dr. Hansen" value={form.title} onChange={(e) => setForm(f => ({ ...f, title: e.target.value }))} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Kategori</Label>
                   <Select value={form.category} onValueChange={(v) => setForm(f => ({ ...f, category: v as typeof form.category }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {Object.entries(categoryLabels).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>{v}</SelectItem>
-                      ))}
+                      {Object.entries(categoryConfig).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label>Start *</Label>
-                    <Input type="datetime-local" value={form.startAt}
-                      onChange={(e) => setForm(f => ({ ...f, startAt: e.target.value }))} />
+                    <Input type="datetime-local" value={form.startAt} onChange={(e) => setForm(f => ({ ...f, startAt: e.target.value }))} />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Slutt</Label>
-                    <Input type="datetime-local" value={form.endAt}
-                      onChange={(e) => setForm(f => ({ ...f, endAt: e.target.value }))} />
+                    <Input type="datetime-local" value={form.endAt} onChange={(e) => setForm(f => ({ ...f, endAt: e.target.value }))} />
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Sted</Label>
-                  <Input placeholder="f.eks. Legesenteret, Storgata 1" value={form.location}
-                    onChange={(e) => setForm(f => ({ ...f, location: e.target.value }))} />
+                  <Input placeholder="f.eks. Oslo legesenter" value={form.location} onChange={(e) => setForm(f => ({ ...f, location: e.target.value }))} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Beskrivelse</Label>
-                  <Textarea placeholder="Notater, forberedelser, etc." value={form.description}
-                    onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} rows={3} />
+                  <Textarea placeholder="Ytterligere informasjon…" value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} rows={3} />
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)}>Avbryt</Button>
                 <Button className="bg-primary text-primary-foreground hover:bg-primary/90"
-                  disabled={!form.title || !form.startAt || createAppt.isPending}
-                  onClick={handleCreate}>
-                  {createAppt.isPending ? "Lagrer…" : "Lagre avtale"}
+                  disabled={!form.title || !form.startAt || createAppt.isPending} onClick={handleCreate}>
+                  {createAppt.isPending ? "Lagrer…" : "Lagre"}
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
 
-        {isLoading ? (
-          <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>
-        ) : Object.keys(grouped).length === 0 ? (
-          <div className="text-center py-20 kura-card">
-            <CalIcon className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="font-serif text-lg font-semibold text-foreground mb-1">Ingen avtaler ennå</p>
-            <p className="text-muted-foreground text-sm">Legg til den første avtalen for omsorgsteamet.</p>
+        <div className="kura-card p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-secondary transition-colors">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="font-serif font-semibold text-foreground capitalize">{monthLabel}</span>
+            <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-secondary transition-colors">
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
-        ) : (
-          <div className="space-y-8">
-            {Object.entries(grouped).map(([month, appts]) => (
-              <div key={month}>
-                <h2 className="font-serif text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 capitalize">
-                  {month}
-                </h2>
-                <div className="space-y-3">
-                  {(appts ?? []).map((a) => (
-                    <Card key={a.id} className="kura-card hover:shadow-sm transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-4">
-                          <div className="text-center min-w-[48px]">
-                            <div className="text-2xl font-bold text-foreground leading-none">
-                              {new Date(a.startAt).getDate()}
-                            </div>
-                            <div className="text-xs text-muted-foreground capitalize">
-                              {new Date(a.startAt).toLocaleDateString("nb-NO", { weekday: "short" })}
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-semibold text-foreground text-sm">{a.title}</span>
-                              <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${categoryColors[a.category]}`}>
-                                {categoryLabels[a.category]}
-                              </span>
-                            </div>
-                            {a.location && (
-                              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                                <MapPin className="w-3 h-3" /> {a.location}
-                              </div>
-                            )}
-                            {a.description && (
-                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{a.description}</p>
-                            )}
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {a.allDay ? "Heldagsavtale" : new Date(a.startAt).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" })}
-                              {a.endAt && !a.allDay && ` – ${new Date(a.endAt).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" })}`}
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost" size="icon"
-                            className="text-muted-foreground hover:text-destructive flex-shrink-0"
-                            onClick={() => deleteAppt.mutate({ id: a.id, careGroupId: groupId })}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
+
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"].map(d => (
+              <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
             ))}
           </div>
-        )}
+
+          {isLoading ? (
+            <Skeleton className="h-48" />
+          ) : (
+            <div className="grid grid-cols-7 gap-1">
+              {Array.from({ length: firstDow }).map((_, i) => <div key={`empty-${i}`} />)}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1;
+                const dayAppts = apptsByDay[day] ?? [];
+                const isToday = new Date().getDate() === day &&
+                  new Date().getMonth() === currentMonth.getMonth() &&
+                  new Date().getFullYear() === currentMonth.getFullYear();
+                return (
+                  <div key={day} className={cn(
+                    "min-h-[60px] p-1 rounded-lg border border-transparent hover:border-border/50 transition-colors",
+                    isToday && "bg-primary/5 border-primary/20"
+                  )}>
+                    <span className={cn("text-xs font-medium block text-center mb-1",
+                      isToday ? "text-primary font-bold" : "text-muted-foreground")}>{day}</span>
+                    {dayAppts.map(a => {
+                      const cfg = categoryConfig[a.category];
+                      return (
+                        <div key={a.id} className={cn("text-xs px-1 py-0.5 rounded mb-0.5 truncate cursor-default", cfg?.bg, cfg?.color)}
+                          title={a.title}>{a.title}</div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          <h2 className="font-serif font-semibold text-foreground">
+            {(appointments ?? []).length === 0 ? "Ingen avtaler denne måneden" : "Alle avtaler denne måneden"}
+          </h2>
+          {(appointments ?? []).map(a => {
+            const cfg = categoryConfig[a.category];
+            return (
+              <Card key={a.id} className="kura-card hover:shadow-sm transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className={cn("w-2 h-2 rounded-full mt-2 flex-shrink-0", cfg?.dot)} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-foreground text-sm">{a.title}</p>
+                      <p className="text-xs text-muted-foreground">{cfg?.label}</p>
+                      <div className="flex items-center gap-3 mt-1 flex-wrap">
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="w-3 h-3" />
+                          {new Date(a.startAt).toLocaleString("nb-NO", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        {a.location && <span className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="w-3 h-3" />{a.location}</span>}
+                      </div>
+                      {a.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{a.description}</p>}
+                    </div>
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive flex-shrink-0"
+                      onClick={() => deleteAppt.mutate({ id: a.id, careGroupId: groupId })}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </div>
     </KuraLayout>
   );
