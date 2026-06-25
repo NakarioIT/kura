@@ -6,9 +6,7 @@ import { useParams } from "wouter";
 import KuraLayout from "@/components/KuraLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,28 +31,17 @@ export default function MedicalLog() {
   const [filter, setFilter] = useState("all");
   const [form, setForm] = useState({
     entryType: "note" as "medication" | "symptom" | "vital" | "wellbeing" | "note",
-    title: "",
-    body: "",
-    medicationName: "",
-    medicationDose: "",
-    medicationGiven: true,
-    vitalSystolic: "",
-    vitalDiastolic: "",
-    vitalPulse: "",
-    vitalTemp: "",
-    vitalWeight: "",
-    vitalOxygen: "",
-    severity: "3",
-    recordedAt: new Date().toISOString().slice(0, 16),
+    title: "", body: "", medicationName: "", medicationDose: "", medicationGiven: true,
+    vitalSystolic: "", vitalDiastolic: "", vitalPulse: "", vitalTemp: "", vitalWeight: "", vitalOxygen: "",
+    severity: "3", recordedAt: new Date().toISOString().slice(0, 16),
   });
 
   const { data: logs, isLoading, refetch } = trpc.medicalLogs.list.useQuery(
-    { careGroupId: groupId, limit: 100 },
-    { enabled: isAuthenticated && !!groupId }
+    { careGroupId: groupId, limit: 100 }, { enabled: isAuthenticated && !!groupId }
   );
 
   const createLog = trpc.medicalLogs.create.useMutation({
-    onSuccess: () => { toast.success("Oppføring lagret!"); setOpen(false); refetch(); resetForm(); },
+    onSuccess: () => { toast.success("Oppføring lagret!"); setOpen(false); refetch(); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -63,27 +50,17 @@ export default function MedicalLog() {
     onError: (e) => toast.error(e.message),
   });
 
-  const resetForm = () =>
-    setForm({ entryType: "note", title: "", body: "", medicationName: "", medicationDose: "",
-      medicationGiven: true, vitalSystolic: "", vitalDiastolic: "", vitalPulse: "",
-      vitalTemp: "", vitalWeight: "", vitalOxygen: "", severity: "3",
-      recordedAt: new Date().toISOString().slice(0, 16) });
-
   const handleCreate = () => {
     if (!form.title) return;
     createLog.mutate({
-      careGroupId: groupId,
-      entryType: form.entryType,
-      title: form.title,
-      body: form.body || undefined,
-      medicationName: form.medicationName || undefined,
+      careGroupId: groupId, entryType: form.entryType, title: form.title,
+      body: form.body || undefined, medicationName: form.medicationName || undefined,
       medicationDose: form.medicationDose || undefined,
       medicationGiven: form.entryType === "medication" ? form.medicationGiven : undefined,
       vitalSystolic: form.vitalSystolic ? parseInt(form.vitalSystolic) : undefined,
       vitalDiastolic: form.vitalDiastolic ? parseInt(form.vitalDiastolic) : undefined,
       vitalPulse: form.vitalPulse ? parseInt(form.vitalPulse) : undefined,
-      vitalTemp: form.vitalTemp || undefined,
-      vitalWeight: form.vitalWeight || undefined,
+      vitalTemp: form.vitalTemp || undefined, vitalWeight: form.vitalWeight || undefined,
       vitalOxygen: form.vitalOxygen ? parseInt(form.vitalOxygen) : undefined,
       severity: ["symptom", "wellbeing"].includes(form.entryType) ? parseInt(form.severity) : undefined,
       recordedAt: new Date(form.recordedAt).getTime(),
@@ -109,111 +86,28 @@ export default function MedicalLog() {
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="font-serif">Ny loggoppføring</DialogTitle>
-              </DialogHeader>
+              <DialogHeader><DialogTitle className="font-serif">Ny loggoppføring</DialogTitle></DialogHeader>
               <div className="space-y-4 py-2">
                 <div className="space-y-1.5">
                   <Label>Type</Label>
                   <Select value={form.entryType} onValueChange={(v) => setForm(f => ({ ...f, entryType: v as typeof form.entryType }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {Object.entries(typeConfig).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>{v.label}</SelectItem>
-                      ))}
+                      {Object.entries(typeConfig).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Tittel *</Label>
-                  <Input placeholder="Kort beskrivelse" value={form.title}
-                    onChange={(e) => setForm(f => ({ ...f, title: e.target.value }))} />
+                  <Input placeholder="Kort beskrivelse" value={form.title} onChange={(e) => setForm(f => ({ ...f, title: e.target.value }))} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Tidspunkt</Label>
-                  <Input type="datetime-local" value={form.recordedAt}
-                    onChange={(e) => setForm(f => ({ ...f, recordedAt: e.target.value }))} />
+                  <Input type="datetime-local" value={form.recordedAt} onChange={(e) => setForm(f => ({ ...f, recordedAt: e.target.value }))} />
                 </div>
-
-                {form.entryType === "medication" && (
-                  <div className="space-y-3 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label>Medisin</Label>
-                        <Input placeholder="f.eks. Paracet" value={form.medicationName}
-                          onChange={(e) => setForm(f => ({ ...f, medicationName: e.target.value }))} />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>Dose</Label>
-                        <Input placeholder="f.eks. 500mg" value={form.medicationDose}
-                          onChange={(e) => setForm(f => ({ ...f, medicationDose: e.target.value }))} />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input type="checkbox" id="given" checked={form.medicationGiven}
-                        onChange={(e) => setForm(f => ({ ...f, medicationGiven: e.target.checked }))}
-                        className="rounded border-border" />
-                      <Label htmlFor="given" className="cursor-pointer">Medisin gitt</Label>
-                    </div>
-                  </div>
-                )}
-
-                {form.entryType === "vital" && (
-                  <div className="space-y-3 p-3 bg-emerald-50/50 rounded-lg border border-emerald-100">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label>Systolisk (mmHg)</Label>
-                        <Input type="number" placeholder="120" value={form.vitalSystolic}
-                          onChange={(e) => setForm(f => ({ ...f, vitalSystolic: e.target.value }))} />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>Diastolisk (mmHg)</Label>
-                        <Input type="number" placeholder="80" value={form.vitalDiastolic}
-                          onChange={(e) => setForm(f => ({ ...f, vitalDiastolic: e.target.value }))} />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>Puls (bpm)</Label>
-                        <Input type="number" placeholder="72" value={form.vitalPulse}
-                          onChange={(e) => setForm(f => ({ ...f, vitalPulse: e.target.value }))} />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>Temperatur (°C)</Label>
-                        <Input placeholder="37.0" value={form.vitalTemp}
-                          onChange={(e) => setForm(f => ({ ...f, vitalTemp: e.target.value }))} />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>Vekt (kg)</Label>
-                        <Input placeholder="70" value={form.vitalWeight}
-                          onChange={(e) => setForm(f => ({ ...f, vitalWeight: e.target.value }))} />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>Oksygenmetning (%)</Label>
-                        <Input type="number" placeholder="98" value={form.vitalOxygen}
-                          onChange={(e) => setForm(f => ({ ...f, vitalOxygen: e.target.value }))} />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {["symptom", "wellbeing"].includes(form.entryType) && (
-                  <div className="space-y-1.5">
-                    <Label>Alvorlighetsgrad (1–5)</Label>
-                    <div className="flex gap-2">
-                      {[1,2,3,4,5].map(n => (
-                        <button key={n}
-                          onClick={() => setForm(f => ({ ...f, severity: String(n) }))}
-                          className={`w-9 h-9 rounded-lg border text-sm font-semibold transition-colors ${form.severity === String(n) ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/50"}`}>
-                          {n}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 <div className="space-y-1.5">
                   <Label>Notater</Label>
-                  <Textarea placeholder="Ytterligere detaljer…" value={form.body}
-                    onChange={(e) => setForm(f => ({ ...f, body: e.target.value }))} rows={3} />
+                  <Textarea placeholder="Ytterligere detaljer…" value={form.body} onChange={(e) => setForm(f => ({ ...f, body: e.target.value }))} rows={3} />
                 </div>
               </div>
               <DialogFooter>
@@ -227,13 +121,10 @@ export default function MedicalLog() {
           </Dialog>
         </div>
 
-        {/* Filter tabs */}
         <Tabs value={filter} onValueChange={setFilter} className="mb-6">
           <TabsList className="bg-secondary/50">
             <TabsTrigger value="all">Alle</TabsTrigger>
-            {Object.entries(typeConfig).map(([k, v]) => (
-              <TabsTrigger key={k} value={k}>{v.label}</TabsTrigger>
-            ))}
+            {Object.entries(typeConfig).map(([k, v]) => <TabsTrigger key={k} value={k}>{v.label}</TabsTrigger>)}
           </TabsList>
         </Tabs>
 
@@ -243,7 +134,6 @@ export default function MedicalLog() {
           <div className="text-center py-20 kura-card">
             <ClipboardList className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
             <p className="font-serif text-lg font-semibold text-foreground mb-1">Ingen oppføringer</p>
-            <p className="text-muted-foreground text-sm">Legg til den første loggoppføringen.</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -261,33 +151,14 @@ export default function MedicalLog() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-foreground text-sm">{l.title}</span>
                           <span className="text-xs text-muted-foreground">{cfg?.label}</span>
-                          {l.severity && (
-                            <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">
-                              Nivå {l.severity}/5
-                            </span>
-                          )}
+                          {l.severity && <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">Nivå {l.severity}/5</span>}
                         </div>
-                        {l.medicationName && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {l.medicationName}{l.medicationDose ? ` · ${l.medicationDose}` : ""}
-                            {l.medicationGiven === false ? " · Ikke gitt" : l.medicationGiven ? " · Gitt ✓" : ""}
-                          </p>
-                        )}
-                        {l.entryType === "vital" && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {l.vitalSystolic && l.vitalDiastolic ? `BT: ${l.vitalSystolic}/${l.vitalDiastolic} mmHg` : ""}
-                            {l.vitalPulse ? ` · Puls: ${l.vitalPulse} bpm` : ""}
-                            {l.vitalTemp ? ` · Temp: ${l.vitalTemp}°C` : ""}
-                            {l.vitalOxygen ? ` · SpO₂: ${l.vitalOxygen}%` : ""}
-                          </p>
-                        )}
                         {l.body && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{l.body}</p>}
                         <p className="text-xs text-muted-foreground mt-1">
                           {new Date(l.recordedAt).toLocaleString("nb-NO", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                         </p>
                       </div>
-                      <Button variant="ghost" size="icon"
-                        className="text-muted-foreground hover:text-destructive flex-shrink-0"
+                      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive flex-shrink-0"
                         onClick={() => deleteLog.mutate({ id: l.id, careGroupId: groupId })}>
                         <Trash2 className="w-4 h-4" />
                       </Button>

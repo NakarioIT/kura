@@ -5,10 +5,8 @@ import { useState } from "react";
 import { useParams } from "wouter";
 import KuraLayout from "@/components/KuraLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,72 +31,25 @@ export default function Tasks() {
   const groupId = parseInt(id ?? "0");
   const { isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    priority: "medium" as "low" | "medium" | "high",
-    assignedToUserId: "",
-    dueAt: "",
-  });
+  const [form, setForm] = useState({ title: "", description: "", priority: "medium" as "low" | "medium" | "high", assignedToUserId: "", dueAt: "" });
 
-  const { data: tasks, isLoading, refetch } = trpc.tasks.list.useQuery(
-    { careGroupId: groupId },
-    { enabled: isAuthenticated && !!groupId }
-  );
-
-  const { data: members } = trpc.careGroups.members.useQuery(
-    { careGroupId: groupId },
-    { enabled: isAuthenticated && !!groupId }
-  );
+  const { data: tasks, isLoading, refetch } = trpc.tasks.list.useQuery({ careGroupId: groupId }, { enabled: isAuthenticated && !!groupId });
+  const { data: members } = trpc.careGroups.members.useQuery({ careGroupId: groupId }, { enabled: isAuthenticated && !!groupId });
 
   const createTask = trpc.tasks.create.useMutation({
-    onSuccess: () => { toast.success("Oppgave opprettet!"); setOpen(false); refetch(); resetForm(); },
+    onSuccess: () => { toast.success("Oppgave opprettet!"); setOpen(false); refetch(); setForm({ title: "", description: "", priority: "medium", assignedToUserId: "", dueAt: "" }); },
     onError: (e) => toast.error(e.message),
   });
 
-  const updateTask = trpc.tasks.update.useMutation({
-    onSuccess: () => refetch(),
-    onError: (e) => toast.error(e.message),
-  });
-
-  const deleteTask = trpc.tasks.delete.useMutation({
-    onSuccess: () => { toast.success("Oppgave slettet."); refetch(); },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const resetForm = () =>
-    setForm({ title: "", description: "", priority: "medium", assignedToUserId: "", dueAt: "" });
-
-  const handleCreate = () => {
-    if (!form.title) return;
-    createTask.mutate({
-      careGroupId: groupId,
-      title: form.title,
-      description: form.description || undefined,
-      priority: form.priority,
-      assignedToUserId: form.assignedToUserId ? parseInt(form.assignedToUserId) : undefined,
-      dueAt: form.dueAt ? new Date(form.dueAt).getTime() : undefined,
-    });
-  };
+  const updateTask = trpc.tasks.update.useMutation({ onSuccess: () => refetch(), onError: (e) => toast.error(e.message) });
+  const deleteTask = trpc.tasks.delete.useMutation({ onSuccess: () => { toast.success("Oppgave slettet."); refetch(); }, onError: (e) => toast.error(e.message) });
 
   const cycleStatus = (task: NonNullable<typeof tasks>[0]) => {
-    const next: Record<string, "pending" | "in_progress" | "done"> = {
-      pending: "in_progress",
-      in_progress: "done",
-      done: "pending",
-    };
-    updateTask.mutate({
-      id: task.id,
-      careGroupId: groupId,
-      status: next[task.status],
-      completedAt: next[task.status] === "done" ? Date.now() : null,
-    });
+    const next: Record<string, "pending" | "in_progress" | "done"> = { pending: "in_progress", in_progress: "done", done: "pending" };
+    updateTask.mutate({ id: task.id, careGroupId: groupId, status: next[task.status], completedAt: next[task.status] === "done" ? Date.now() : null });
   };
 
-  const grouped = statusConfig.map((s) => ({
-    ...s,
-    tasks: (tasks ?? []).filter((t) => t.status === s.key),
-  }));
+  const grouped = statusConfig.map((s) => ({ ...s, tasks: (tasks ?? []).filter((t) => t.status === s.key) }));
 
   return (
     <KuraLayout groupId={id}>
@@ -117,19 +68,15 @@ export default function Tasks() {
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="font-serif">Opprett oppgave</DialogTitle>
-              </DialogHeader>
+              <DialogHeader><DialogTitle className="font-serif">Opprett oppgave</DialogTitle></DialogHeader>
               <div className="space-y-4 py-2">
                 <div className="space-y-1.5">
                   <Label>Tittel *</Label>
-                  <Input placeholder="f.eks. Hent medisiner fra apotek" value={form.title}
-                    onChange={(e) => setForm(f => ({ ...f, title: e.target.value }))} />
+                  <Input placeholder="f.eks. Hent medisiner fra apotek" value={form.title} onChange={(e) => setForm(f => ({ ...f, title: e.target.value }))} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Beskrivelse</Label>
-                  <Textarea placeholder="Ytterligere detaljer…" value={form.description}
-                    onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} rows={3} />
+                  <Textarea placeholder="Ytterligere detaljer…" value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} rows={3} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
@@ -145,8 +92,7 @@ export default function Tasks() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Frist</Label>
-                    <Input type="date" value={form.dueAt}
-                      onChange={(e) => setForm(f => ({ ...f, dueAt: e.target.value }))} />
+                    <Input type="date" value={form.dueAt} onChange={(e) => setForm(f => ({ ...f, dueAt: e.target.value }))} />
                   </div>
                 </div>
                 <div className="space-y-1.5">
@@ -155,9 +101,7 @@ export default function Tasks() {
                     <SelectTrigger><SelectValue placeholder="Velg teammedlem" /></SelectTrigger>
                     <SelectContent>
                       {(members ?? []).map((m) => (
-                        <SelectItem key={m.userId} value={String(m.userId)}>
-                          {m.user?.name ?? m.displayName ?? `Bruker #${m.userId}`}
-                        </SelectItem>
+                        <SelectItem key={m.userId} value={String(m.userId)}>{m.user?.name ?? m.displayName ?? `Bruker #${m.userId}`}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -166,7 +110,8 @@ export default function Tasks() {
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)}>Avbryt</Button>
                 <Button className="bg-primary text-primary-foreground hover:bg-primary/90"
-                  disabled={!form.title || createTask.isPending} onClick={handleCreate}>
+                  disabled={!form.title || createTask.isPending}
+                  onClick={() => createTask.mutate({ careGroupId: groupId, title: form.title, description: form.description || undefined, priority: form.priority, assignedToUserId: form.assignedToUserId ? parseInt(form.assignedToUserId) : undefined, dueAt: form.dueAt ? new Date(form.dueAt).getTime() : undefined })}>
                   {createTask.isPending ? "Oppretter…" : "Opprett"}
                 </Button>
               </DialogFooter>
@@ -175,9 +120,7 @@ export default function Tasks() {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {[1,2,3].map(i => <Skeleton key={i} className="h-48 rounded-xl" />)}
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">{[1,2,3].map(i => <Skeleton key={i} className="h-48 rounded-xl" />)}</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {grouped.map((col) => {
@@ -187,62 +130,35 @@ export default function Tasks() {
                   <div className={`flex items-center gap-2 mb-3 ${col.color}`}>
                     <Icon className="w-4 h-4" />
                     <span className="font-semibold text-sm">{col.label}</span>
-                    <span className="ml-auto text-xs bg-secondary text-muted-foreground rounded-full px-2 py-0.5">
-                      {col.tasks.length}
-                    </span>
+                    <span className="ml-auto text-xs bg-secondary text-muted-foreground rounded-full px-2 py-0.5">{col.tasks.length}</span>
                   </div>
                   <div className="space-y-3">
                     {col.tasks.length === 0 ? (
-                      <div className="kura-card p-4 text-center">
-                        <p className="text-xs text-muted-foreground">Ingen oppgaver</p>
-                      </div>
-                    ) : (
-                      col.tasks.map((t) => {
-                        const assignee = members?.find(m => m.userId === t.assignedToUserId);
-                        return (
-                          <Card key={t.id} className="kura-card hover:shadow-sm transition-shadow">
-                            <CardContent className="p-4">
-                              <div className="flex items-start gap-2">
-                                <button
-                                  onClick={() => cycleStatus(t)}
-                                  className={`mt-0.5 flex-shrink-0 transition-colors ${col.color} hover:opacity-70`}
-                                >
-                                  <Icon className="w-4 h-4" />
-                                </button>
-                                <div className="flex-1 min-w-0">
-                                  <p className={`text-sm font-medium leading-snug ${t.status === "done" ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                                    {t.title}
-                                  </p>
-                                  {t.description && (
-                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{t.description}</p>
-                                  )}
-                                  <div className="flex items-center gap-2 mt-2 flex-wrap">
-                                    <span className={`text-xs px-1.5 py-0.5 rounded border font-medium ${priorityConfig[t.priority]?.color}`}>
-                                      {priorityConfig[t.priority]?.label}
-                                    </span>
-                                    {assignee && (
-                                      <span className="text-xs text-muted-foreground">
-                                        → {assignee.user?.name ?? assignee.displayName ?? "Ukjent"}
-                                      </span>
-                                    )}
-                                    {t.dueAt && (
-                                      <span className="text-xs text-muted-foreground ml-auto">
-                                        {new Date(t.dueAt).toLocaleDateString("nb-NO", { day: "numeric", month: "short" })}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                <Button variant="ghost" size="icon"
-                                  className="text-muted-foreground hover:text-destructive flex-shrink-0 -mr-1"
-                                  onClick={() => deleteTask.mutate({ id: t.id, careGroupId: groupId })}>
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
+                      <div className="kura-card p-4 text-center"><p className="text-xs text-muted-foreground">Ingen oppgaver</p></div>
+                    ) : col.tasks.map((t) => (
+                      <Card key={t.id} className="kura-card hover:shadow-sm transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-2">
+                            <button onClick={() => cycleStatus(t)} className={`mt-0.5 flex-shrink-0 transition-colors ${col.color} hover:opacity-70`}>
+                              <Icon className="w-4 h-4" />
+                            </button>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-medium leading-snug ${t.status === "done" ? "line-through text-muted-foreground" : "text-foreground"}`}>{t.title}</p>
+                              {t.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{t.description}</p>}
+                              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                <span className={`text-xs px-1.5 py-0.5 rounded border font-medium ${priorityConfig[t.priority]?.color}`}>
+                                  {priorityConfig[t.priority]?.label}
+                                </span>
                               </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })
-                    )}
+                            </div>
+                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive flex-shrink-0 -mr-1"
+                              onClick={() => deleteTask.mutate({ id: t.id, careGroupId: groupId })}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 </div>
               );
